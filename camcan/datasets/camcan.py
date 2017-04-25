@@ -94,8 +94,8 @@ def _check_patients_excluded(patients_excluded):
     return patients_excluded_
 
 
-def load_camcan_paths(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
-    """Path loader for the Cam-CAN.
+def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
+    """Path loader for the Cam-CAN resting-state fMRI data.
 
     This loader returns a Bunch object containing the paths to the data of
     interests. The data which can be loaded are:
@@ -175,6 +175,7 @@ def load_camcan_paths(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
                 warnings.warn("No file match the regular expression {} for"
                               " the subject ID {}".format(
                                   join(p, f), relpath(subject_dir, data_dir)))
+                dataset[k].append(None)
             else:
                 dataset[k].append(nifti_path[0])
 
