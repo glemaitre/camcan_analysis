@@ -4,36 +4,27 @@ import numpy as np
 
 from nilearn.datasets import fetch_atlas_basc_multiscale_2015
 
-from sklearn.externals.joblib import Parallel, delayed
-
 from ..utils import make_masker_from_atlas
 
 
-def _transform_one_func(masker, func, confounds):
-    """Private function to make parallel the extraction of times series."""
-
-    return masker.transform(func, confounds=confounds)
-
-
-def extract_timeseries(funcs,
+def extract_timeseries(func,
                        atlas=fetch_atlas_basc_multiscale_2015().scale064,
                        confounds=None,
                        memory=None,
-                       memory_level=1,
-                       n_jobs=1):
+                       memory_level=1):
     """Extract time series for a list of functional volume.
 
     Parameters
     ----------
-    funcs : list of str,
-        A list of path of Nifti volumes.
+    func : str,
+        Path of Nifti volumes.
 
     atlas : str or 3D/4D Niimg-like object, (default=BASC64)
         The atlas to use to create the masker. If string, it should corresponds
         to the path of a Nifti image.
 
-    confounds : list of str,
-        A list of path containing the confounds.
+    confounds : str,
+        Path containing the confounds.
 
     memory : instance of joblib.Memory or string, (default=None)
         Used to cache the masking process. By default, no caching is done. If a
@@ -55,11 +46,8 @@ def extract_timeseries(funcs,
     masker.fit()
 
     if confounds is not None:
-        confounds_ = [np.loadtxt(filename) for filename in confounds]
+        confounds_ = np.loadtxt(confounds)
     else:
-        confounds_ = [None] * len(funcs)
+        confounds_ = None
 
-    time_series = Parallel(n_jobs=n_jobs, verbose=1)(delayed(
-        _transform_one_func)(masker, f, c) for f, c in zip(funcs, confounds_))
-
-    return time_series
+    return masker.transform(func, confounds=confounds_)

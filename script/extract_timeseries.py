@@ -11,45 +11,38 @@ from camcan.preprocessing import extract_timeseries
 from nilearn.datasets import (fetch_atlas_basc_multiscale_2015,
                               fetch_atlas_msdl)
 
-from sklearn.externals import joblib
+import joblib
+from joblib import Parallel, delayed
 
 # path to the Cam-CAN data set
-CAMCAN_PREPROCESSED = '/storage/data/camcan/camcan_preproc'
-CAMCAN_PATIENTS_EXCLUDED = None
-CAMCAN_TIMESERIES = '/storage/data/camcan/camcan_timeseries'
+CAMCAN_PREPROCESSED = '/home/mehdi/data/camcan/camcan_preproc'
+CAMCAN_PATIENTS_EXCLUDED = '/home/mehdi/data/camcan/camcan_preproc/excluded_subjects.csv'
+CAMCAN_TIMESERIES = '/home/mehdi/data/camcan/camcan_timeseries'
 # path to the atlases
-ATLASES = [fetch_atlas_basc_multiscale_2015.scale064,
-           fetch_atlas_basc_multiscale_2015.scale122,
-           fetch_atlas_msdl.maps]
-ATLASES_DESCR = ['basc064', 'basc122', 'msdl']
+ATLASES = [fetch_atlas_msdl().maps,
+           fetch_atlas_basc_multiscale_2015().scale064,
+           fetch_atlas_basc_multiscale_2015().scale122]
+ATLASES_DESCR = ['msdl', 'basc064', 'basc122']
 # path for the caching
-CACHE_TIMESERIES = '/storage/data/camcan/cache/timeseries'
+CACHE_TIMESERIES = '/home/mehdi/data/camcan/cache/timeseries'
+if not os.path.exists(CACHE_TIMESERIES):
+    os.makedirs(CACHE_TIMESERIES)
 
 N_JOBS = 20
 
-# create the path to dump the results
-for atlas_descr in ATLASES_DESCR:
-    path_results = os.path.join(CAMCAN_TIMESERIES, atlas_descr)
-    if not os.path.exists(path_results):
-        os.makedirs(path_results)
-
 dataset = load_camcan_rest(data_dir=CAMCAN_PREPROCESSED,
                            patients_excluded=CAMCAN_PATIENTS_EXCLUDED)
-for atlas, atlas_descr in (ATLASES, ATLASES_DESCR):
-    # with and without confounds
-    for confounds in [None, dataset.motion]:
-        time_series = extract_timeseries(dataset.func,
-                                         atlas=atlas,
-                                         confounds=confounds,
-                                         memory=CACHE_TIMESERIES,
-                                         memory_level=2,
-                                         n_jobs=N_JOBS)
+for atlas, atlas_descr in zip(ATLASES, ATLASES_DESCR):
 
-        if confounds is None:
-            filename = os.path.join(CAMCAN_TIMESERIES, atlas_descr,
-                                    'time_series.pkl')
-        else:
-            filename = os.path.join(CAMCAN_TIMESERIES, atlas_descr,
-                                    'time_series_confounds.pkl')
+    time_series = Parallel(n_jobs=N_JOBS, verbose=1)(delayed(
+        extract_timeseries)(func, atlas=atlas, confounds=confounds,
+                            memory=CACHE_TIMESERIES, memory_level=2)
+        for func, confounds in zip(dataset.func, dataset.motion))
 
-        joblib.dump(time_series, filename)
+    for ts, subject_id in zip(time_series, dataset.subject_id):
+        path_subject = os.path.join(CAMCAN_TIMESERIES, subject_id, atlas_descr)
+        if not os.path.exists(path_subject):
+            os.makedirs(path_subject)
+        filename = os.path.join(path_subject,
+                                '%s_task-Rest_confounds.pkl' % subject_id)
+        joblib.dump(ts, filename)
