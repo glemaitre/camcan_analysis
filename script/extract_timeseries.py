@@ -12,7 +12,7 @@ from nilearn.datasets import (fetch_atlas_basc_multiscale_2015,
                               fetch_atlas_msdl)
 
 import joblib
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, Memory
 
 # path to the Cam-CAN data set
 CAMCAN_PREPROCESSED = '/home/mehdi/data/camcan/camcan_preproc'
@@ -27,6 +27,7 @@ ATLASES_DESCR = ['msdl', 'basc064', 'basc122']
 CACHE_TIMESERIES = '/home/mehdi/data/camcan/cache/timeseries'
 if not os.path.exists(CACHE_TIMESERIES):
     os.makedirs(CACHE_TIMESERIES)
+MEMORY = Memory(CACHE_TIMESERIES)
 
 N_JOBS = 20
 
@@ -36,7 +37,7 @@ for atlas, atlas_descr in zip(ATLASES, ATLASES_DESCR):
 
     time_series = Parallel(n_jobs=N_JOBS, verbose=1)(delayed(
         extract_timeseries)(func, atlas=atlas, confounds=confounds,
-                            memory=CACHE_TIMESERIES, memory_level=2)
+                            memory=MEMORY, memory_level=2)
         for func, confounds in zip(dataset.func, dataset.motion))
 
     for ts, subject_id in zip(time_series, dataset.subject_id):
