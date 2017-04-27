@@ -64,5 +64,6 @@ if __name__ == "__main__":
           install_requires=['scipy>=0.9',
                             'numpy>=1.6.1',
                             'scikit-learn>=0.14.1',
+                            'joblib>=0.11.0',
                             'nibabel>=1.2.0',
                             'nilearn>=0.3.0'])

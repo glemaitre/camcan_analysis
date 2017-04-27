@@ -1,0 +1,5 @@
+include *.rst
+recursive-include camcan/preprocessing *.txt *.pkl *.nii.gz
+recursive-include camcan/datasets *.csv *.csv.gz *.rst *.jpg *.txt
+include LICENSE
+include README.rst

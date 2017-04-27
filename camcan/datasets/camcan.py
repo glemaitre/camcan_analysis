@@ -63,7 +63,7 @@ def _patients_id_from_csv(csv_file):
         raise ValueError('{}: File not found.'.format(csv_file))
 
 
-def _check_patients_excluded(patients_excluded):
+def _validate_patients_excluded(patients_excluded):
     """Private function to validate ``patients_excluded``.
 
     Parameters
@@ -97,8 +97,8 @@ def _check_patients_excluded(patients_excluded):
         if patients_excluded.endswith('.csv'):
             patients_excluded_ = _patients_id_from_csv(patients_excluded)
         else:
-            raise ValueError('If a string is provided, a csv file needs'
-                             ' to be given.')
+            raise ValueError('If a string is provided, a csv file is'
+                             ' required.')
     else:
         raise ValueError("'patients_excluded' should be a tuple. Got {}"
                          " instead.".format(type(patients_excluded)))
@@ -160,9 +160,11 @@ def _load_camcan_scores(filename_csv, subjects_selected):
 
     """
 
-    if not isfile(filename_csv) or not filename_csv.endswith('.csv'):
-        raise ValueError('The file {} does not exist or is not a CSV'
-                         ' file'.format(filename_csv))
+    if not isfile(filename_csv):
+        raise ValueError('The file {} does not exist.'.format(filename_csv))
+
+    if not filename_csv.endswith('.csv'):
+        raise ValueError('The file {} is not a CSV file.'.format(filename_csv))
 
     patients_info = pd.read_csv(filename_csv,
                                 usecols=COLUMN_SELECT_PATIENTS_INFO)
@@ -206,7 +208,8 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
         If None, data.scores will be a list of None.
 
     patients_excluded : str, tuple of str or None, optional (default=None)
-        - If a string, corresponds to the path of a csv file.
+        - If a string, corresponds to the path of a csv file. The first line
+        of this csv file should contain the name of each column.
         - If a tuple of strings, contains the ID of the patient to be
         excluded. The string provided should follow the BIDS standard (e.g.,
         'sub-******').
@@ -228,7 +231,7 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
         - 'DESCR', the description of the full dataset.
 
     """
-    patients_excluded_ = _check_patients_excluded(patients_excluded)
+    patients_excluded_ = _validate_patients_excluded(patients_excluded)
 
     if not isdir(data_dir):
         raise ValueError("The directory '{}' does not exist.".format(data_dir))
@@ -293,7 +296,8 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
         are: 'msdl' (default), 'basc064', and 'basc122'.
 
     patients_excluded : str, tuple of str or None, optional (default=None)
-        - If a string, corresponds to the path of a csv file.
+        - If a string, corresponds to the path of a csv file. The first line
+        of this csv file should contain the name of each column.
         - If a tuple of strings, contains the ID of the patient to be
         excluded. The string provided should follow the BIDS standard (e.g.,
         'sub-******').
@@ -309,7 +313,7 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
         handedness, and gender.
 
     """
-    patients_excluded_ = _check_patients_excluded(patients_excluded)
+    patients_excluded_ = _validate_patients_excluded(patients_excluded)
 
     if not isdir(data_dir):
         raise ValueError("The directory '{}' does not exist.".format(data_dir))
@@ -356,7 +360,8 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
         The kind of connectivity matrix.
 
     patients_excluded : str, tuple of str or None, optional (default=None)
-        - If a string, corresponds to the path of a csv file.
+        - If a string, corresponds to the path of a csv file. The first line
+        of this csv file should contain the name of each column.
         - If a tuple of strings, contains the ID of the patient to be
         excluded. The string provided should follow the BIDS standard (e.g.,
         'sub-******').
@@ -372,7 +377,7 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
         handedness, and gender.
 
     """
-    patients_excluded_ = _check_patients_excluded(patients_excluded)
+    patients_excluded_ = _validate_patients_excluded(patients_excluded)
 
     if not isdir(data_dir):
         raise ValueError("The directory '{}' does not exist.".format(data_dir))
