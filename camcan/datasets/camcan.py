@@ -19,9 +19,12 @@ from sklearn.datasets.base import Bunch
 CAMCAN_DRAGO_STORE = '/storage/data/camcan/camcan_preproc'
 # time series rest path
 CAMCAN_DRAGO_STORE_TIMESERIES_REST = '/storage/data/camcan/camcan_timeseries'
-# connectivity res path
+# connectivity rest path
 CAMCAN_DRAGO_STORE_CONNECTIVITY_REST = '/storage/data/camcan/'\
                                        'camcan_connectivity'
+# scores path
+CAMCAN_DRAGO_STORE_SCORES = '/storage/data/camcan/cc700-scored/'\
+                            'participant_data.csv'
 
 # path for anatomical and functional images - BIDS format
 FUNCTIONAL_PATH = 'func'
@@ -32,6 +35,9 @@ FUNC_PATTERN = 'wrsub-*.nii.gz'
 MVT_PATTERN = 'rp*.txt'
 ANAT_PATTERN = 'wsub-*.nii.gz'
 TISSUES_PATTERN = ['mwc1sub-*.nii.gz', 'mwc2sub-*.nii.gz', 'mwc3sub-*.nii.gz']
+
+# column to select from the patients information
+COLUMN_SELECT_PATIENTS_INFO = ('Observations', 'age', 'hand', 'gender_text')
 
 
 def _patients_id_from_csv(csv_file):
@@ -119,7 +125,51 @@ def _exclude_patients(data_dir, patients_excluded):
     return [subjects_dir[i] for i in dir_idx_kept]
 
 
-def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
+def _load_camcan_scores(filename_csv, subjects_selected):
+    """Load the scores from the Cam-CAN data set.
+
+    Parameters
+    ----------
+    filename_csv : str,
+        Path to the csv file containing the participants information.
+
+    subjects_selected: list of str,
+        A list of strings, contains the ID of the patient to be selected. The
+        string provided should follow the BIDS standard (e.g., 'sub-******').
+
+    Returns
+    -------
+    data : Bunch,
+        Dictionary-like object. The interesting attributes are:
+
+        - 'age', the age of the patient;
+        - 'hand', handedness of the patient;
+        - 'gender_text', gender of the patient.
+
+    """
+
+    if not isfile(filename_csv) or not filename_csv.endswith('.csv'):
+        raise ValueError('The file {} does not exist or is not a CSV'
+                         ' file'.format(filename_csv))
+
+    patients_info = pd.read_csv(filename_csv,
+                                usecols=COLUMN_SELECT_PATIENTS_INFO)
+
+    # the id in the CSV is missing 'sub-'
+    patients_info['Observations'] = 'sub-' + patients_info['Observations']
+    # filter the IDs to be kept
+    patients_info = patients_info[
+        patients_info['Observations'].isin(list(subjects_selected))]
+    # sort just in case
+    patients_info = (patients_info.set_index('Observations')
+                                  .loc[subjects_selected])
+
+    return Bunch(**patients_info.to_dict('list'))
+
+
+def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
+                     patients_info_csv=CAMCAN_DRAGO_STORE_SCORES,
+                     patients_excluded=None):
     """Path loader for the Cam-CAN resting-state fMRI data.
 
     This loader returns a Bunch object containing the paths to the data of
@@ -139,6 +189,9 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
     data_dir : str,
         Root directory containing the root data.
 
+    patients_info_csv : str,
+        Path to the CSV file containing the patients information.
+
     patients_excluded : str, tuple of str or None, optional (default=None)
         - If a string, corresponds to the path of a csv file.
         - If a tuple of strings, contains the ID of the patient to be
@@ -157,7 +210,8 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
         - 'tissues', the path to the images containing the segmentation of the
         brain tissues from the anatomical images;
         - 'subject_id', the ID of the patient;
-        - 'scores', a dictionary containing the different scores;
+        - 'scores', a dictionary containing the different scores: age,
+        handedness, and gender;
         - 'DESCR', the description of the full dataset.
 
     """
@@ -200,10 +254,14 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
             else:
                 dataset[k].append(nifti_path[0])
 
+    scores = _load_camcan_scores(patients_info_csv, dataset.subject_id)
+    dataset['scores'] = scores
+
     return Bunch(**dataset)
 
 
 def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
+                                patients_info_csv=CAMCAN_DRAGO_STORE_SCORES,
                                 atlas='msdl',
                                 patients_excluded=None):
     """Load the Cam-CAN time series extracted from resting fMRI.
@@ -212,6 +270,9 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
     ----------
     data_dir : str,
         Root directory containing the root data.
+
+    patients_info_csv : str,
+        Path to the CSV file containing the patients information.
 
     atlas : str, (default='msdl')
         The atlas to used during the extraction of the time series. Choices
@@ -229,7 +290,9 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
         Dictionary-like object. The interesting attributes are:
 
         - 'timeseries', the time series for each patient.
-        - 'subject_id', the ID of the patient.
+        - 'subject_id', the ID of the patient;
+        - 'scores', a dictionary containing the different scores: age,
+        handedness, and gender.
 
     """
     patients_excluded_ = _check_patients_excluded(patients_excluded)
@@ -249,10 +312,14 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
                         subject_id + '_task-Rest_confounds.pkl')
         dataset['timeseries'].append(joblib.load(filename))
 
+    scores = _load_camcan_scores(patients_info_csv, dataset.subject_id)
+    dataset['scores'] = scores
+
     return Bunch(**dataset)
 
 
 def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
+                                  patients_info_csv=CAMCAN_DRAGO_STORE_SCORES,
                                   atlas='msdl',
                                   kind='tangent',
                                   patients_excluded=None):
@@ -262,6 +329,9 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
     ----------
     data_dir : str,
         Root directory containing the root data.
+
+    patients_info_csv : str,
+        Path to the CSV file containing the patients information.
 
     atlas : str, (default='msdl')
         The atlas to used during the extraction of the time series. Choices
@@ -282,7 +352,9 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
         Dictionary-like object. The interesting attributes are:
 
         - 'connectivity', the connectivity matrix for each patient.
-        - 'subject_id', the ID of the patient.
+        - 'subject_id', the ID of the patient;
+        - 'scores', a dictionary containing the different scores: age,
+        handedness, and gender.
 
     """
     patients_excluded_ = _check_patients_excluded(patients_excluded)
@@ -301,5 +373,8 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
         filename = join(subject_dir, atlas, kind,
                         subject_id + '_task-Rest_confounds.pkl')
         dataset['connectivity'].append(joblib.load(filename))
+
+    scores = _load_camcan_scores(patients_info_csv, dataset.subject_id)
+    dataset['scores'] = scores
 
     return Bunch(**dataset)

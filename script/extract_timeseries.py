@@ -16,7 +16,8 @@ from joblib import Parallel, delayed, Memory
 
 # path to the Cam-CAN data set
 CAMCAN_PREPROCESSED = '/home/mehdi/data/camcan/camcan_preproc'
-CAMCAN_PATIENTS_EXCLUDED = '/home/mehdi/data/camcan/camcan_preproc/excluded_subjects.csv'
+CAMCAN_PATIENTS_EXCLUDED = '/home/mehdi/data/camcan/camcan_preproc/'\
+                           'excluded_subjects.csv'
 CAMCAN_TIMESERIES = '/home/mehdi/data/camcan/camcan_timeseries'
 # path to the atlases
 ATLASES = [fetch_atlas_msdl().maps,
