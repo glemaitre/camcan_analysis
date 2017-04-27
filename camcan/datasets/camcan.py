@@ -254,7 +254,7 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
             else:
                 dataset[k].append(nifti_path[0])
 
-    scores = _load_camcan_scores(patients_info_csv, dataset.subject_id)
+    scores = _load_camcan_scores(patients_info_csv, dataset['subject_id'])
     dataset['scores'] = scores
 
     return Bunch(**dataset)
@@ -312,7 +312,7 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
                         subject_id + '_task-Rest_confounds.pkl')
         dataset['timeseries'].append(joblib.load(filename))
 
-    scores = _load_camcan_scores(patients_info_csv, dataset.subject_id)
+    scores = _load_camcan_scores(patients_info_csv, dataset['subject_id'])
     dataset['scores'] = scores
 
     return Bunch(**dataset)
@@ -374,7 +374,7 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
                         subject_id + '_task-Rest_confounds.pkl')
         dataset['connectivity'].append(joblib.load(filename))
 
-    scores = _load_camcan_scores(patients_info_csv, dataset.subject_id)
+    scores = _load_camcan_scores(patients_info_csv, dataset['subject_id'])
     dataset['scores'] = scores
 
     return Bunch(**dataset)
