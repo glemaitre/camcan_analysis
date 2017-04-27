@@ -10,12 +10,18 @@ from os.path import join, isdir, relpath, dirname, isfile
 
 import numpy as np
 import pandas as pd
+import joblib
 
 from sklearn.externals import six
 from sklearn.datasets.base import Bunch
 
 # root path
-CAMCAN_DRAGO_STORE = '/storage/data/camcan/camcan_preprocess'
+CAMCAN_DRAGO_STORE = '/storage/data/camcan/camcan_preproc'
+# time series rest path
+CAMCAN_DRAGO_STORE_TIMESERIES_REST = '/storage/data/camcan/camcan_timeseries'
+# connectivity res path
+CAMCAN_DRAGO_STORE_CONNECTIVITY_REST = '/storage/data/camcan/'\
+                                       'camcan_connectivity'
 
 # path for anatomical and functional images - BIDS format
 FUNCTIONAL_PATH = 'func'
@@ -94,6 +100,25 @@ def _check_patients_excluded(patients_excluded):
     return patients_excluded_
 
 
+def _exclude_patients(data_dir, patients_excluded):
+    """Private function to exclude patients.
+
+    Parameters
+    ----------
+    data_dir : str,
+        The path to be investigated.
+
+    patients_excluded : tuple of str,
+        The tuple containing all the patients IDs.
+
+    """
+    subjects_dir = sorted(glob.glob(join(data_dir, 'sub-*')))
+    dir_idx_kept = [dir_idx for dir_idx in range(len(subjects_dir))
+                    if relpath(subjects_dir[dir_idx], data_dir)
+                    not in patients_excluded]
+    return [subjects_dir[i] for i in dir_idx_kept]
+
+
 def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
     """Path loader for the Cam-CAN resting-state fMRI data.
 
@@ -141,11 +166,7 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
     if not isdir(data_dir):
         raise ValueError("The directory '{}' does not exist.".format(data_dir))
 
-    subjects_dir = sorted(glob.glob(join(data_dir, 'sub-*')))
-    dir_idx_kept = [dir_idx for dir_idx in range(len(subjects_dir))
-                    if relpath(subjects_dir[dir_idx], data_dir)
-                    not in patients_excluded_]
-    subjects_dir = [subjects_dir[i] for i in dir_idx_kept]
+    subjects_dir = _exclude_patients(data_dir, patients_excluded_)
 
     module_path = dirname(__file__)
     with open(join(module_path, 'descr', 'camcan.rst')) as rst_file:
@@ -178,5 +199,107 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE, patients_excluded=None):
                 dataset[k].append(None)
             else:
                 dataset[k].append(nifti_path[0])
+
+    return Bunch(**dataset)
+
+
+def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
+                                atlas='msdl',
+                                patients_excluded=None):
+    """Load the Cam-CAN time series extracted from resting fMRI.
+
+    Parameters
+    ----------
+    data_dir : str,
+        Root directory containing the root data.
+
+    atlas : str, (default='msdl')
+        The atlas to used during the extraction of the time series. Choices
+        are: 'msdl' (default), 'basc064', and 'basc122'.
+
+    patients_excluded : str, tuple of str or None, optional (default=None)
+        - If a string, corresponds to the path of a csv file.
+        - If a tuple of strings, contains the ID of the patient to be
+        excluded. The string provided should follow the BIDS standard (e.g.,
+        'sub-******').
+
+    Returns
+    -------
+    data : Bunch,
+        Dictionary-like object. The interesting attributes are:
+
+        - 'timeseries', the time series for each patient.
+        - 'subject_id', the ID of the patient.
+
+    """
+    patients_excluded_ = _check_patients_excluded(patients_excluded)
+
+    if not isdir(data_dir):
+        raise ValueError("The directory '{}' does not exist.".format(data_dir))
+
+    subjects_dir = _exclude_patients(data_dir, patients_excluded_)
+
+    dataset = {'timeseries': [],
+               'subject_id': []}
+
+    for subject_dir in subjects_dir:
+        subject_id = relpath(subject_dir, data_dir)
+        dataset['subject_id'].append(subject_id)
+        filename = join(subject_dir, atlas,
+                        subject_id + '_task-Rest_confounds.pkl')
+        dataset['timeseries'].append(joblib.load(filename))
+
+    return Bunch(**dataset)
+
+
+def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
+                                  atlas='msdl',
+                                  kind='tangent',
+                                  patients_excluded=None):
+    """Load the Cam-CAN time series extracted from resting fMRI.
+
+    Parameters
+    ----------
+    data_dir : str,
+        Root directory containing the root data.
+
+    atlas : str, (default='msdl')
+        The atlas to used during the extraction of the time series. Choices
+        are: 'msdl' (default), 'basc064', and 'basc122'.
+
+    kind : str, (default='tangent)
+        The kind of connectivity matrix.
+
+    patients_excluded : str, tuple of str or None, optional (default=None)
+        - If a string, corresponds to the path of a csv file.
+        - If a tuple of strings, contains the ID of the patient to be
+        excluded. The string provided should follow the BIDS standard (e.g.,
+        'sub-******').
+
+    Returns
+    -------
+    data : Bunch,
+        Dictionary-like object. The interesting attributes are:
+
+        - 'connectivity', the connectivity matrix for each patient.
+        - 'subject_id', the ID of the patient.
+
+    """
+    patients_excluded_ = _check_patients_excluded(patients_excluded)
+
+    if not isdir(data_dir):
+        raise ValueError("The directory '{}' does not exist.".format(data_dir))
+
+    subjects_dir = _exclude_patients(data_dir, patients_excluded_)
+
+    dataset = {'connectivity': [],
+               'subject_id': []}
+
+    for subject_dir in subjects_dir:
+        subject_id = relpath(subject_dir, data_dir)
+        dataset['subject_id'].append(subject_id)
+        filename = join(subject_dir, atlas, kind,
+                        subject_id + '_task-Rest_confounds.pkl')
+        dataset['connectivity'].append(joblib.load(filename))
 
     return Bunch(**dataset)
