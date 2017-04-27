@@ -125,6 +125,18 @@ def _exclude_patients(data_dir, patients_excluded):
     return [subjects_dir[i] for i in dir_idx_kept]
 
 
+def _check_scores(patients_info_csv, subject_ids):
+    """Private function to return scores.
+    """
+    if patients_info_csv is None:
+        scores = Bunch(**{'age': [None] * len(subject_ids),
+                          'hand': [None] * len(subject_ids),
+                          'gender_text': [None] * len(subject_ids)})
+    else:
+        scores = _load_camcan_scores(patients_info_csv, subject_ids)
+    return scores
+
+
 def _load_camcan_scores(filename_csv, subjects_selected):
     """Load the scores from the Cam-CAN data set.
 
@@ -168,7 +180,7 @@ def _load_camcan_scores(filename_csv, subjects_selected):
 
 
 def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
-                     patients_info_csv=CAMCAN_DRAGO_STORE_SCORES,
+                     patients_info_csv=None,
                      patients_excluded=None):
     """Path loader for the Cam-CAN resting-state fMRI data.
 
@@ -189,8 +201,9 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
     data_dir : str,
         Root directory containing the root data.
 
-    patients_info_csv : str,
+    patients_info_csv : str or None, (default=None)
         Path to the CSV file containing the patients information.
+        If None, data.scores will be a list of None.
 
     patients_excluded : str, tuple of str or None, optional (default=None)
         - If a string, corresponds to the path of a csv file.
@@ -254,14 +267,14 @@ def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
             else:
                 dataset[k].append(nifti_path[0])
 
-    scores = _load_camcan_scores(patients_info_csv, dataset['subject_id'])
+    scores = _check_scores(patients_info_csv, dataset['subject_id'])
     dataset['scores'] = scores
 
     return Bunch(**dataset)
 
 
 def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
-                                patients_info_csv=CAMCAN_DRAGO_STORE_SCORES,
+                                patients_info_csv=None,
                                 atlas='msdl',
                                 patients_excluded=None):
     """Load the Cam-CAN time series extracted from resting fMRI.
@@ -271,8 +284,9 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
     data_dir : str,
         Root directory containing the root data.
 
-    patients_info_csv : str,
+    patients_info_csv : str or None, (default=None)
         Path to the CSV file containing the patients information.
+        If None, data.scores will be a list of None.
 
     atlas : str, (default='msdl')
         The atlas to used during the extraction of the time series. Choices
@@ -312,14 +326,14 @@ def load_camcan_timeseries_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
                         subject_id + '_task-Rest_confounds.pkl')
         dataset['timeseries'].append(joblib.load(filename))
 
-    scores = _load_camcan_scores(patients_info_csv, dataset['subject_id'])
+    scores = _check_scores(patients_info_csv, dataset['subject_id'])
     dataset['scores'] = scores
 
     return Bunch(**dataset)
 
 
 def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
-                                  patients_info_csv=CAMCAN_DRAGO_STORE_SCORES,
+                                  patients_info_csv=None,
                                   atlas='msdl',
                                   kind='tangent',
                                   patients_excluded=None):
@@ -330,8 +344,9 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
     data_dir : str,
         Root directory containing the root data.
 
-    patients_info_csv : str,
+    patients_info_csv : str or None, (default=None)
         Path to the CSV file containing the patients information.
+        If None, data.scores will be a list of None.
 
     atlas : str, (default='msdl')
         The atlas to used during the extraction of the time series. Choices
@@ -374,7 +389,7 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
                         subject_id + '_task-Rest_confounds.pkl')
         dataset['connectivity'].append(joblib.load(filename))
 
-    scores = _load_camcan_scores(patients_info_csv, dataset['subject_id'])
+    scores = _check_scores(patients_info_csv, dataset['subject_id'])
     dataset['scores'] = scores
 
     return Bunch(**dataset)
