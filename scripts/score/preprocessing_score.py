@@ -6,10 +6,9 @@
 # libraries
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
 
 # path
-path_data = "/home/arthur/arthur_imbert/dev/cc700-scored"
+path_data = "/home/mehdi/data/camcan/cc700-scored"
 
 
 def get_df(path):
@@ -126,6 +125,6 @@ print("\n")
 print("total shape :", big_df.shape)
 
 # save results
-path = os.path.join(path_data, "total_score")
+path = os.path.join(path_data, "total_score.csv")
 print("output :", path)
-df.to_csv(path, sep=";", encoding="utf-8", index=False)
+big_df.to_csv(path, sep=";", encoding="utf-8", index=False)
