@@ -22,10 +22,6 @@ run_tests(){
     python -c "import multiprocessing as mp; print('%d CPUs' % mp.cpu_count())"
 
     nosetests -v -s --with-coverage --cover-package=$MODULE $MODULE
-
-    # Test doc
-    cd $OLDPWD
-    make test-doc
 }
 
 if [[ "$SKIP_TESTS" != "true" ]]; then
