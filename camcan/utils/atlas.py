@@ -44,8 +44,5 @@ def make_masker_from_atlas(atlas, memory=None, memory_level=1):
                                  smoothing_fwhm=6,
                                  detrend=True,
                                  verbose=1)
-    else:
-        raise ValueError('The atlas provided is not a 3D or 4D atlas. Got'
-                         ' {}D instead.'.format(atlas_dim))
 
     return masker
