@@ -16,13 +16,13 @@ def test_extract_timeseries():
 
     time_serie = extract_timeseries(filename_func,
                                     atlas=fetch_atlas_msdl().maps)
-    assert_equal(time_serie.shape, (261, 39))
+    assert_equal(time_serie.shape, (5, 39))
     assert_almost_equal(mean(time_serie), -1.05343771823e-13)
-    assert_almost_equal(std(time_serie), 14.3336213437)
+    assert_almost_equal(std(time_serie), 5.253714931447222)
 
     time_serie = extract_timeseries(filename_func,
                                     atlas=fetch_atlas_msdl().maps,
                                     confounds=filename_confounds)
-    assert_equal(time_serie.shape, (261, 39))
+    assert_equal(time_serie.shape, (5, 39))
     assert_almost_equal(mean(time_serie), -1.05567147082e-13)
-    assert_almost_equal(std(time_serie), 12.932504301)
+    assert_almost_equal(std(time_serie), 1.8468688363637491e-13)
