@@ -66,4 +66,5 @@ if __name__ == "__main__":
                             'scikit-learn>=0.14.1',
                             'joblib>=0.11.0',
                             'nibabel>=1.2.0',
-                            'nilearn>=0.3.0'])
+                            'nilearn>=0.3.0',
+                            'pandas>=0.19.2'])
