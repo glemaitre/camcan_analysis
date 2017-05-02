@@ -176,10 +176,7 @@ def _load_camcan_scores(filename_csv, subjects_selected):
 
     # the id in the CSV is missing 'sub-'
     patients_info['Observations'] = 'sub-' + patients_info['Observations']
-    # filter the IDs to be kept
-    patients_info = patients_info[
-        patients_info['Observations'].isin(list(subjects_selected))]
-    # sort just in case
+    # filter the IDs to be kept and sort just in case
     patients_info = (patients_info.set_index('Observations')
                                   .loc[subjects_selected])
 
@@ -405,9 +402,9 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
     return Bunch(**dataset)
 
 
-def load_camcan_contrast_maps(
-    contrast_name, statistic_type='z_score',
-    data_dir=CAMCAN_DRAGO_STORE_CONTRASTS, patients_excluded=None):
+def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
+                              data_dir=CAMCAN_DRAGO_STORE_CONTRASTS,
+                              patients_excluded=None):
     """
     Load contrast maps for Camcan.
 
@@ -453,4 +450,79 @@ def load_camcan_contrast_maps(
         if stat_type == statistic_type and contrast == contrast_name:
             dataset['subject_id'].append(subject_id)
             dataset['contrast_map'].append(contrast_map)
+
+    return Bunch(**dataset)
+
+
+def load_camcan_behavioural(filename_csv,
+                            patients_info_csv=None,
+                            patients_excluded=None,
+                            column_selected=None):
+    """Load the Cam-CAN cognitive behavioral data set.
+
+    This loader returns a Bunch object containing the behavioral scores. The
+    data of interest are:
+
+    - All cognitive behavioral scores;
+    - Patient ID;
+    - Scores.
+
+    See the description of the data to get all the information.
+
+    Parameters
+    ----------
+    filename_csv : str,
+        Path to the csv file containing the behavioral information.
+
+    patients_info_csv : str or None, (default=None)
+        Path to the CSV file containing the patients information.
+        If None, data.scores will be a list of None.
+
+    patients_excluded : str, tuple of str or None, optional (default=None)
+        - If a string, corresponds to the path of a csv file. The first line
+        of this csv file should contain the name of each column.
+        - If a tuple of strings, contains the ID of the patient to be
+        excluded. The string provided should follow the BIDS standard (e.g.,
+        'sub-******').
+
+    Returns
+    -------
+    data : Bunch,
+        Dictionary-like object. The interesting attributes are:
+
+        - 'data', the behavioral scores;
+        - 'subject_id', the ID of the patient;
+        - 'scores', a dictionary containing the different scores: age,
+        handedness, and gender;
+        - 'DESCR', the description of the full dataset.
+
+    """
+    if not isfile(filename_csv):
+        raise ValueError('The file {} does not exist.'.format(filename_csv))
+
+    if not filename_csv.endswith('.csv'):
+        raise ValueError('The file {} is not a CSV file.'.format(filename_csv))
+
+    patients_excluded_ = _validate_patients_excluded(patients_excluded)
+
+    behavioral_data = pd.read_csv(filename_csv,
+                                  usecols=column_selected,
+                                  sep=';')
+    # the id in the CSV is missing 'sub-'
+    behavioral_data['Observations'] = 'sub-' + behavioral_data['Observations']
+    # filter the IDs to be removed
+    behavioral_data = behavioral_data[
+        ~behavioral_data['Observations'].isin(list(patients_excluded_))]
+
+    module_path = dirname(__file__)
+    with open(join(module_path, 'descr', 'camcan.rst')) as rst_file:
+        fdescr = rst_file.read()
+
+    dataset = {'data': behavioral_data.drop('Observations', axis=1),
+               'subject_id': behavioral_data['Observations'],
+               'DESCR': fdescr}
+
+    scores = _check_scores(patients_info_csv, dataset['subject_id'])
+    dataset['scores'] = scores
+
     return Bunch(**dataset)
