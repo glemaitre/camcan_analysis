@@ -6,10 +6,10 @@
 # libraries
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
+print("\n")
 
 # path
-path_data = "/home/arthur/arthur_imbert/dev/cc700-scored"
+data_directory = "/home/arthur/arthur_imbert/dev/cc700-scored"
 
 
 def get_df(path):
@@ -38,35 +38,46 @@ def get_df(path):
         df = pd.read_csv(path, skiprows=l[0]+1, skipfooter=i-l[1], engine="python", sep="\t")
         l = [l[0], l[1]]
     elif len(l) >= 3:
-        df = pd.read_csv(path, skiprows=l[1]+1, skipfooter=i-l[2], engine="python", sep="\t")
+        df = pd.read_csv(path, skiprows=l[1] + 1, skipfooter=i - l[2], engine="python", sep="\t")
+        df = df[df.columns[:2]]
+        for j in range(len(l)):
+            if j % 2 == 1:
+                start = l[j] + 1
+                end = i - l[j + 1]
+                df_part = pd.read_csv(path, skiprows=start, skipfooter=end, engine="python", sep="\t")
+                _class = df_part.at[0, df_part.columns[1]].strip()
+                header = ["_".join([_class, c]) for c in df_part.columns]
+                df_part.columns = header
+                df = df.merge(df_part, how="left", left_index=True, left_on="CCID", right_on=df_part.columns[0])
+        header = [c for c in df.columns if c != df.columns[1] and "ErrorMessages" not in c]
+        df = df[header]
         l = [l[1], l[2]]
     else:
         return None, l
     return df, l
 
 
-def check_unicity(df, index):
+def check_unicity(df, col_index):
     """
     Function to validate and clean the dataframe
     : param df: dataframe
-    : param index: string (column to check)
+    : param col_index: string (column to check)
     : return: dataframe
     """
     # check unicity
     l = []
-    for i in df[index]:
-        test = df.query("%s == '%s'" % (index, i))
+    for i in df[col_index]:
+        test = df.query("%s == '%s'" % (col_index, i))
         if len(test) != 1:
             l.append(i)
-    df = df.query("%s not in %s" % (index, str(l)))
+    df = df.query("%s not in %s" % (col_index, str(l)))
     return df
 
 
-def clean_df(df, index):
+def clean_df(df):
     """
     Function to clean the dataframe
     : param df: dataframe
-    : param index: string (column to check)
     : return: dataframe
     """
     idx = []
@@ -82,50 +93,57 @@ def clean_df(df, index):
     col = [c for c in df.columns if c not in ["ErrorMessages", "ErrorMessage"]]
     return df.ix[idx, col]
 
-# participants
-path_participants = os.path.join(path_data, "participant_data.csv")
-big_df = pd.read_csv(path_participants)
-print("number of participants :", big_df.shape[0], "\n")
+
+def merge_data(path_data, filename_participants):
+    d = {}
+    for i in os.listdir(path_data):
+        path0 = os.path.join(path_data, i)
+        if os.path.isdir(path0):
+            path1 = os.path.join(path0, "release001")
+            if os.path.isdir(path1):
+                path2 = os.path.join(path1, "summary")
+                if os.path.isdir(path2):
+                    for j in os.listdir(path2):
+                        if "summary" in j and "with_ages" not in j:
+                            path_df = os.path.join(path2, j)
+                            df, l = get_df(path_df)
+                            if df is not None:
+                                d[i] = path_df
+            path1bis = os.path.join(path0, "release002")
+            if os.path.isdir(path1bis):
+                path2 = os.path.join(path1bis, "summary")
+                if os.path.isdir(path2):
+                    for j in os.listdir(path2):
+                        if "summary" in j and "with_ages" not in j:
+                            path_df = os.path.join(path2, j)
+                            df, l = get_df(path_df)
+                            if df is not None:
+                                d[i + "bis"] = path_df
+    path_participants = os.path.join(path_data, filename_participants)
+    big_df = pd.read_csv(path_participants)
+    col_to_delete = [c for c in big_df.columns if c != "Observations"]
+    print("merging datasets...")
+    for key in d:
+        df, _ = get_df(d[key])
+        index = df.columns[0]
+        df = check_unicity(df, index)
+        df = clean_df(df)
+        print(df.shape, key)
+        big_df = big_df.merge(df, how="left", left_index=True, left_on="Observations", right_on=index)
+    print("\n")
+    big_df = big_df[[c for c in big_df.columns if c not in col_to_delete]]
+    big_df.reset_index(drop=True, inplace=True)
+    return big_df
 
 # merge data
-d = {}
-for i in os.listdir(path_data):
-    print(i)
-    path0 = os.path.join(path_data, i)
-    if os.path.isdir(path0):
-        path1 = os.path.join(path0, "release001")
-        if os.path.isdir(path1):
-            path2 = os.path.join(path1, "summary")
-            if os.path.isdir(path2):
-                for j in os.listdir(path2):
-                    if "summary" in j and "with_ages" not in j:
-                        path_df = os.path.join(path2, j)
-                        df, l = get_df(path_df)
-                        if df is not None:
-                            d[i] = path_df
-        path1bis = os.path.join(path0, "release002")
-        if os.path.isdir(path1bis):
-            path2 = os.path.join(path1bis, "summary")
-            if os.path.isdir(path2):
-                for j in os.listdir(path2):
-                    if "summary" in j and "with_ages" not in j:
-                        path_df = os.path.join(path2, j)
-                        df, l = get_df(path_df)
-                        if df is not None:
-                            d[i+"bis"] = path_df
-print("\n")
-for key in d:
-    df, _ = get_df(d[key])
-    index = df.columns[0]
-    df = check_unicity(df, index)
-    df = clean_df(df, index)
-    print(df.shape, key)
-    big_df = big_df.merge(df, how="left", left_index=True, left_on="Observations", right_on=index)
-big_df.reset_index(drop=True, inplace=True)
-print("\n")
-print("total shape :", big_df.shape)
+df = merge_data(data_directory, "participant_data.csv")
+print("total shape :", df.shape)
 
 # save results
-path = os.path.join(path_data, "total_score")
+path = os.path.join(data_directory, "total_score.csv")
 print("output :", path)
 df.to_csv(path, sep=";", encoding="utf-8", index=False)
+
+
+
+     ]
