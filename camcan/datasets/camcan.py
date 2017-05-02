@@ -407,7 +407,8 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
 
 def load_camcan_contrast_maps(
     contrast_name, statistic_type='z_score',
-    data_dir=CAMCAN_DRAGO_STORE_CONTRASTS, patients_excluded=None):
+    data_dir=CAMCAN_DRAGO_STORE_CONTRASTS, patients_excluded=None,
+    mask_path=None):
     """
     Load contrast maps for Camcan.
 
@@ -441,6 +442,9 @@ def load_camcan_contrast_maps(
     if not os.path.isdir(data_dir):
         raise FileNotFoundError(
             2, 'No such file or directory: {}'.format(data_dir))
+    if mask_path is None:
+        mask_path = os.path.join(data_dir, 'mask_camcan.nii.gz')
+    mask_path = os.path.abspath(mask_path)
     patients_excluded_ = _validate_patients_excluded(patients_excluded)
     dataset = {'subject_id': [], 'contrast_map': []}
     subject_dirs = _exclude_patients(data_dir, patients_excluded_)
@@ -453,4 +457,4 @@ def load_camcan_contrast_maps(
         if stat_type == statistic_type and contrast == contrast_name:
             dataset['subject_id'].append(subject_id)
             dataset['contrast_map'].append(contrast_map)
-    return Bunch(**dataset)
+    return Bunch(mask=mask_path, **dataset)
