@@ -5,6 +5,8 @@ Loader for the Cam-CAN data set.
 import re
 import glob
 import warnings
+import itertools
+import os
 
 from os.path import join, isdir, relpath, dirname, isfile
 
@@ -22,6 +24,9 @@ CAMCAN_DRAGO_STORE_TIMESERIES_REST = '/storage/data/camcan/camcan_timeseries'
 # connectivity rest path
 CAMCAN_DRAGO_STORE_CONNECTIVITY_REST = '/storage/data/camcan/'\
                                        'camcan_connectivity'
+# contrast maps path
+CAMCAN_DRAGO_STORE_CONTRASTS = '/storage/data/camcan/camcan_smt_maps'
+#
 # scores path
 CAMCAN_DRAGO_STORE_SCORES = '/storage/data/camcan/cc700-scored/'\
                             'participant_data.csv'
@@ -397,4 +402,55 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
     scores = _check_scores(patients_info_csv, dataset['subject_id'])
     dataset['scores'] = scores
 
+    return Bunch(**dataset)
+
+
+def load_camcan_contrast_maps(
+    contrast_name, statistic_type='z_score',
+    data_dir=CAMCAN_DRAGO_STORE_CONTRASTS, patients_excluded=None):
+    """
+    Load contrast maps for Camcan.
+
+    Parameters
+    ----------
+    contrast_name : str,
+        The name of the contrast to load.
+
+    statistic_type : str, (default='z_score')
+        The kind of statistical map to load.
+
+    data_dir : str, (default=CAMCAN_DRAGO_STORE_CONTRASTS)
+        Root directory containing the root data.
+
+    patients_excluded : str, tuple of str or None, optional (default=None)
+        - If a string, corresponds to the path of a csv file. The first line
+        of this csv file should contain the name of each column.
+        - If a tuple of strings, contains the ID of the patient to be
+        excluded. The string provided should follow the BIDS standard (e.g.,
+        'sub-******').
+
+    Returns
+    -------
+    data : Bunch,
+        Dictionary-like object. The interesting attributes are:
+
+        - 'subject_id', the ID of the patient;
+        - 'contrast_map', the path to the map.
+
+    """
+    if not os.path.isdir(data_dir):
+        raise FileNotFoundError(
+            2, 'No such file or directory: {}'.format(data_dir))
+    patients_excluded_ = _validate_patients_excluded(patients_excluded)
+    dataset = {'subject_id': [], 'contrast_map': []}
+    subject_dirs = _exclude_patients(data_dir, patients_excluded_)
+    for contrast_map in itertools.chain(*map(os.listdir, subject_dirs)):
+        contrast_map = os.path.abspath(contrast_map)
+        match = re.match(
+            r'^.*sub-([0-9a-zA-Z]+)_([0-9a-zA-Z-]+)_(.+)\.nii\.gz$',
+            contrast_map)
+        subject_id, contrast, stat_type = match.groups()
+        if stat_type == statistic_type and contrast == contrast_name:
+            dataset['subject_id'].append(subject_id)
+            dataset['contrast_map'].append(contrast_map)
     return Bunch(**dataset)
