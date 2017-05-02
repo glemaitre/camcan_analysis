@@ -9,7 +9,7 @@ import pandas as pd
 print("\n")
 
 # path
-data_directory = "/home/arthur/arthur_imbert/dev/cc700-scored"
+path_data = "/home/arthur/arthur_imbert/dev/cc700-scored"
 
 
 def get_df(path):
@@ -95,6 +95,12 @@ def clean_df(df):
 
 
 def merge_data(path_data, filename_participants):
+    """
+    Function to merge the different datasets
+    :param path_data: string
+    :param filename_participants: string
+    :return:
+    """
     d = {}
     for i in os.listdir(path_data):
         path0 = os.path.join(path_data, i)
@@ -136,14 +142,10 @@ def merge_data(path_data, filename_participants):
     return big_df
 
 # merge data
-df = merge_data(data_directory, "participant_data.csv")
-print("total shape :", df.shape)
+big_df = merge_data(path_data, "participant_data.csv")
+print("total shape :", big_df.shape)
 
 # save results
-path = os.path.join(data_directory, "total_score.csv")
+path = os.path.join(path_data, "total_score.csv")
 print("output :", path)
-df.to_csv(path, sep=";", encoding="utf-8", index=False)
-
-
-
-     ]
+big_df.to_csv(path, sep=";", encoding="utf-8", index=False)
