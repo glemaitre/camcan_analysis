@@ -404,14 +404,14 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
 
 def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
                               data_dir=CAMCAN_DRAGO_STORE_CONTRASTS,
-                              patients_excluded=None):
+                              patients_excluded=None, mask_file=None):
     """
     Load contrast maps for Camcan.
 
     Parameters
     ----------
     contrast_name : str,
-        The name of the contrast to load.
+       Regex pattern that matches the contrasts you want
 
     statistic_type : str, (default='z_score')
         The kind of statistical map to load.
@@ -425,6 +425,8 @@ def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
         - If a tuple of strings, contains the ID of the patient to be
         excluded. The string provided should follow the BIDS standard (e.g.,
         'sub-******').
+    mask_file : str or None (default=None)
+        where to find the mask. if none we look for it in data_dir
 
     Returns
     -------
@@ -432,14 +434,19 @@ def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
         Dictionary-like object. The interesting attributes are:
 
         - 'subject_id', the ID of the patient;
-        - 'contrast_map', the path to the map.
+        - 'contrast_map', the path to the map;
+        - 'contrast_name', the name of the contrast;
+        - 'mask', the path to the mask.
 
     """
     if not os.path.isdir(data_dir):
         raise FileNotFoundError(
             2, 'No such file or directory: {}'.format(data_dir))
+    if mask_file is None:
+        mask_file = os.path.join(data_dir, 'mask_camcan.nii.gz')
+    mask_file = os.path.abspath(mask_file)
     patients_excluded_ = _validate_patients_excluded(patients_excluded)
-    dataset = {'subject_id': [], 'contrast_map': []}
+    dataset = {'subject_id': [], 'contrast_map': [], 'contrast_name': []}
     subject_dirs = _exclude_patients(data_dir, patients_excluded_)
     for contrast_map in itertools.chain(*map(os.listdir, subject_dirs)):
         contrast_map = os.path.abspath(contrast_map)
@@ -447,11 +454,12 @@ def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
             r'^.*sub-([0-9a-zA-Z]+)_([0-9a-zA-Z-]+)_(.+)\.nii\.gz$',
             contrast_map)
         subject_id, contrast, stat_type = match.groups()
-        if stat_type == statistic_type and contrast == contrast_name:
+        if stat_type == statistic_type and re.match(contrast_name, contrast):
             dataset['subject_id'].append(subject_id)
             dataset['contrast_map'].append(contrast_map)
+            dataset['contrast_name'].append(contrast)
 
-    return Bunch(**dataset)
+    return Bunch(mask=mask_file, **dataset)
 
 
 def load_camcan_behavioural(filename_csv,
