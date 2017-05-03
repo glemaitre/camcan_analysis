@@ -10,7 +10,9 @@ import json
 print("\n")
 
 # path
-path_data = "/home/arthur/arthur_imbert/dev/cc700-scored"
+directory_data = "/home/arthur/arthur_imbert/dev/cc700-scored"
+path_data = os.path.join(directory_data, "total_score.csv")
+path_features = os.path.join(directory_data, 'behavioural_features.json')
 
 
 def get_df(path):
@@ -106,7 +108,7 @@ def merge_data(path_data, filename_participants):
     :return: dataframe, dictionary
     """
     d = {}
-    d_features = {}
+    d_features= {}
     for i in os.listdir(path_data):
         path0 = os.path.join(path_data, i)
         if os.path.isdir(path0):
@@ -120,16 +122,6 @@ def merge_data(path_data, filename_participants):
                             df = get_df(path_df)
                             if df is not None:
                                 d[i] = path_df
-            path1bis = os.path.join(path0, "release002")
-            if os.path.isdir(path1bis):
-                path2 = os.path.join(path1bis, "summary")
-                if os.path.isdir(path2):
-                    for j in os.listdir(path2):
-                        if "summary" in j and "with_ages" not in j:
-                            path_df = os.path.join(path2, j)
-                            df = get_df(path_df)
-                            if df is not None:
-                                d[i + "bis"] = path_df
     path_participants = os.path.join(path_data, filename_participants)
     big_df = pd.read_csv(path_participants)
     col_to_delete = [c for c in big_df.columns if c != "Observations"]
@@ -139,25 +131,29 @@ def merge_data(path_data, filename_participants):
         index = df.columns[0]
         df = check_unicity(df, index)
         df = clean_df(df)
+        df = df.set_index(index)
         print(df.shape, key)
-        d_features[key] = tuple(list(df.columns))
-        big_df = big_df.merge(df, how="left", left_index=True,
-                              left_on="Observations", right_on=index)
+        x = big_df.shape[1]
+        big_df = big_df.merge(df,
+                              how="left",
+                              left_index=False,
+                              right_index=True,
+                              left_on="Observations",
+                              suffixes=('', '_y'))
+        d_features[key] = list(big_df.columns)[x:]
     print("\n")
     big_df = big_df[[c for c in big_df.columns if c not in col_to_delete]]
     big_df.reset_index(drop=True, inplace=True)
     return big_df, d_features
 
 # merge data
-big_df, d_features = merge_data(path_data, "participant_data.csv")
+big_df, d = merge_data(directory_data, "participant_data.csv")
 print("total shape :", big_df.shape, "\n")
 
 # save results
-path = os.path.join(path_data, "total_score.csv")
-print("output data :", path)
-big_df.to_csv(path, sep=";", encoding="utf-8", index=False)
-path = os.path.join(path_data, 'behavioural_features.json')
-print("output features :", path)
-with open(path, 'w') as f:
-    json.dump(d_features, f)
+print("output data :", path_data)
+big_df.to_csv(path_data, sep=";", encoding="utf-8", index=False)
+print("output features :", path_features)
+with open(path_features, mode="w") as f:
+    json.dump(d, f)
 

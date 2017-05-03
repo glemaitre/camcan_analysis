@@ -612,7 +612,7 @@ def load_camcan_behavioural(filename_csv,
     return Bunch(**dataset)
 
 
-def load_camcan_behavioural_feature(name_experiment):
+def load_camcan_behavioural_feature(name_experiment, features_map):
     """Load the Cam-CAN cognitive behavioral data set.
 
     This loader returns a list containing the features of a requested dataset.
@@ -622,20 +622,20 @@ def load_camcan_behavioural_feature(name_experiment):
     name_experiment : str,
         name of the experiment folder containing the behavioural information.
 
+    features_map : str,
+        path of the json file containing the features mapping.
+
     Returns
     -------
     features : tuple of str
 
     """
-    d = _load_camcan_behavioural_features\
-        (CAMCAN_DRAGO_STORE_BEHAVIOURAL_EXPERIMENT)
+    exp_features_map = _load_camcan_behavioural_features\
+        (features_map)
 
-    if name_experiment not in d:
+    if name_experiment not in exp_features_map:
         raise KeyError('{} does not exist.'.format(name_experiment))
 
-    features = d[name_experiment]
+    features = exp_features_map[name_experiment]
 
-    if isinstance(features, list):
-        features = tuple(features)
-
-    return features
+    return tuple(features)
