@@ -620,7 +620,11 @@ def load_camcan_behavioural_feature(name_experiment, features_map):
     Parameters
     ----------
     name_experiment : str,
-        name of the experiment folder containing the behavioural information.
+        Name of the experiment folder containing the behavioural information.
+        Choices are: "ForceMatching", "RTchoice", "Hotel", "EkmanEmHex",
+        "MotorLearning", "VSTMcolour", "EmotionalMemory", "Synsem", "RTsimple",
+        "PicturePriming", "CardioMeasures", "MRI", "TOT", "EmotionRegulation",
+        "FamousFace", "Proverbs", "BentonFaces", "Cattell", "HomeInterview".
 
     features_map : str,
         path of the json file containing the features mapping.
