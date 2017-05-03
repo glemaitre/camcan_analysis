@@ -22,8 +22,9 @@ CAMCAN_TIMESERIES = '/home/mehdi/data/camcan/camcan_timeseries'
 # path to the atlases
 ATLASES = [fetch_atlas_msdl().maps,
            fetch_atlas_basc_multiscale_2015().scale064,
-           fetch_atlas_basc_multiscale_2015().scale122]
-ATLASES_DESCR = ['msdl', 'basc064', 'basc122']
+           fetch_atlas_basc_multiscale_2015().scale122,
+           fetch_atlas_basc_multiscale_2015().scale197]
+ATLASES_DESCR = ['msdl', 'basc064', 'basc122', 'basc197']
 # path for the caching
 CACHE_TIMESERIES = '/home/mehdi/data/camcan/cache/timeseries'
 if not os.path.exists(CACHE_TIMESERIES):
@@ -38,7 +39,7 @@ for atlas, atlas_descr in zip(ATLASES, ATLASES_DESCR):
 
     time_series = Parallel(n_jobs=N_JOBS, verbose=1)(delayed(
         extract_timeseries)(func, atlas=atlas, confounds=confounds,
-                            memory=MEMORY, memory_level=2)
+                            memory=MEMORY, memory_level=0)
         for func, confounds in zip(dataset.func, dataset.motion))
 
     for ts, subject_id in zip(time_series, dataset.subject_id):

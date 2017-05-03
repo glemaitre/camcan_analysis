@@ -17,7 +17,7 @@ CAMCAN_TIMESERIES = '/home/mehdi/data/camcan/camcan_timeseries'
 CAMCAN_PATIENTS_EXCLUDED = None
 CAMCAN_CONNECTIVITY = '/home/mehdi/data/camcan/camcan_connectivity'
 # path to the different atlases
-ATLASES = ['msdl', 'basc064', 'basc122']
+ATLASES = ['msdl', 'basc064', 'basc122', 'basc197']
 # path for the different kind of connectivity matrices
 CONNECTIVITY_KIND = ['correlation', 'partial correlation', 'tangent']
 # path for the caching

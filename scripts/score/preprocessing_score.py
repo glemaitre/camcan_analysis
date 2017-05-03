@@ -9,7 +9,7 @@ import pandas as pd
 print("\n")
 
 # path
-path_data = "/home/arthur/arthur_imbert/dev/cc700-scored"
+path_data = "/storage/data/camcan/cc700-scored"
 
 
 def get_df(path):
