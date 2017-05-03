@@ -6,10 +6,11 @@
 # libraries
 import os
 import pandas as pd
+import json
 print("\n")
 
 # path
-path_data = "/storage/data/camcan/cc700-scored"
+path_data = "/home/arthur/arthur_imbert/dev/cc700-scored"
 
 
 def get_df(path):
@@ -20,7 +21,7 @@ def get_df(path):
     """
     size = os.path.getsize(path)
     if size == 0:
-        return None, None
+        return None
     l = []
     with open(path, mode="rt", encoding="utf-8") as f:
         i = 0
@@ -30,31 +31,32 @@ def get_df(path):
             i += 1
     if len(l) == 0:
         df = pd.read_csv(path, engine="python", sep="\t")
-        l = [0, i]
     elif len(l) == 1:
         df = pd.read_csv(path, skiprows=l[0]+1, sep="\t")
-        l = [l[0], i]
     elif len(l) == 2:
-        df = pd.read_csv(path, skiprows=l[0]+1, skipfooter=i-l[1], engine="python", sep="\t")
-        l = [l[0], l[1]]
+        df = pd.read_csv(path, skiprows=l[0]+1, skipfooter=i-l[1],
+                         engine="python", sep="\t")
     elif len(l) >= 3:
-        df = pd.read_csv(path, skiprows=l[1] + 1, skipfooter=i - l[2], engine="python", sep="\t")
+        df = pd.read_csv(path, skiprows=l[1] + 1, skipfooter=i - l[2],
+                         engine="python", sep="\t")
         df = df[df.columns[:2]]
         for j in range(len(l)):
             if j % 2 == 1:
                 start = l[j] + 1
                 end = i - l[j + 1]
-                df_part = pd.read_csv(path, skiprows=start, skipfooter=end, engine="python", sep="\t")
+                df_part = pd.read_csv(path, skiprows=start, skipfooter=end,
+                                      engine="python", sep="\t")
                 _class = df_part.at[0, df_part.columns[1]].strip()
                 header = ["_".join([_class, c]) for c in df_part.columns]
                 df_part.columns = header
-                df = df.merge(df_part, how="left", left_index=True, left_on="CCID", right_on=df_part.columns[0])
-        header = [c for c in df.columns if c != df.columns[1] and "ErrorMessages" not in c]
+                df = df.merge(df_part, how="left", left_index=True,
+                              left_on="CCID", right_on=df_part.columns[0])
+        header = [c for c in df.columns if c != df.columns[1]
+                  and "ErrorMessages" not in c]
         df = df[header]
-        l = [l[1], l[2]]
     else:
-        return None, l
-    return df, l
+        return None
+    return df
 
 
 def check_unicity(df, col_index):
@@ -83,10 +85,12 @@ def clean_df(df):
     idx = []
     for i in df.index:
         if "ErrorMessages" in df.columns:
-            if df.at[i, "ErrorMessages"] != df.at[i, "ErrorMessages"] or df.at[i, "ErrorMessages"] in ["0.00000", "None", " "]:
+            if df.at[i, "ErrorMessages"] != df.at[i, "ErrorMessages"] \
+                    or df.at[i, "ErrorMessages"] in ["0.00000", "None", " "]:
                 idx.append(i)
         elif "ErrorMessage" in df.columns:
-            if df.at[i, "ErrorMessage"] != df.at[i, "ErrorMessage"] or df.at[i, "ErrorMessage"] in ["0.00000", "None", " "]:
+            if df.at[i, "ErrorMessage"] != df.at[i, "ErrorMessage"] \
+                    or df.at[i, "ErrorMessage"] in ["0.00000", "None", " "]:
                 idx.append(i)
         else:
             idx.append(i)
@@ -99,9 +103,10 @@ def merge_data(path_data, filename_participants):
     Function to merge the different datasets
     :param path_data: string
     :param filename_participants: string
-    :return:
+    :return: dataframe, dictionary
     """
     d = {}
+    d_features = {}
     for i in os.listdir(path_data):
         path0 = os.path.join(path_data, i)
         if os.path.isdir(path0):
@@ -112,7 +117,7 @@ def merge_data(path_data, filename_participants):
                     for j in os.listdir(path2):
                         if "summary" in j and "with_ages" not in j:
                             path_df = os.path.join(path2, j)
-                            df, l = get_df(path_df)
+                            df = get_df(path_df)
                             if df is not None:
                                 d[i] = path_df
             path1bis = os.path.join(path0, "release002")
@@ -122,7 +127,7 @@ def merge_data(path_data, filename_participants):
                     for j in os.listdir(path2):
                         if "summary" in j and "with_ages" not in j:
                             path_df = os.path.join(path2, j)
-                            df, l = get_df(path_df)
+                            df = get_df(path_df)
                             if df is not None:
                                 d[i + "bis"] = path_df
     path_participants = os.path.join(path_data, filename_participants)
@@ -130,22 +135,29 @@ def merge_data(path_data, filename_participants):
     col_to_delete = [c for c in big_df.columns if c != "Observations"]
     print("merging datasets...")
     for key in d:
-        df, _ = get_df(d[key])
+        df = get_df(d[key])
         index = df.columns[0]
         df = check_unicity(df, index)
         df = clean_df(df)
         print(df.shape, key)
-        big_df = big_df.merge(df, how="left", left_index=True, left_on="Observations", right_on=index)
+        d_features[key] = tuple(list(df.columns))
+        big_df = big_df.merge(df, how="left", left_index=True,
+                              left_on="Observations", right_on=index)
     print("\n")
     big_df = big_df[[c for c in big_df.columns if c not in col_to_delete]]
     big_df.reset_index(drop=True, inplace=True)
-    return big_df
+    return big_df, d_features
 
 # merge data
-big_df = merge_data(path_data, "participant_data.csv")
-print("total shape :", big_df.shape)
+big_df, d_features = merge_data(path_data, "participant_data.csv")
+print("total shape :", big_df.shape, "\n")
 
 # save results
 path = os.path.join(path_data, "total_score.csv")
-print("output :", path)
+print("output data :", path)
 big_df.to_csv(path, sep=";", encoding="utf-8", index=False)
+path = os.path.join(path_data, 'behavioural_features.json')
+print("output features :", path)
+with open(path, 'w') as f:
+    json.dump(d_features, f)
+

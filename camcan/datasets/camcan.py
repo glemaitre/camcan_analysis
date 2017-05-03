@@ -12,6 +12,7 @@ from os.path import join, isdir, relpath, dirname, isfile
 
 import numpy as np
 import pandas as pd
+import json
 import joblib
 
 from sklearn.externals import six
@@ -26,10 +27,14 @@ CAMCAN_DRAGO_STORE_CONNECTIVITY_REST = '/storage/data/camcan/'\
                                        'camcan_connectivity'
 # contrast maps path
 CAMCAN_DRAGO_STORE_CONTRASTS = '/storage/data/camcan/camcan_smt_maps'
-#
+
 # scores path
 CAMCAN_DRAGO_STORE_SCORES = '/storage/data/camcan/cc700-scored/'\
                             'participant_data.csv'
+
+# behavioural path
+CAMCAN_DRAGO_STORE_BEHAVIOURAL_EXPERIMENT = "/storage/data/camcan/" \
+                                            "cc700-scored/behavioural_features.json"
 
 # path for anatomical and functional images - BIDS format
 FUNCTIONAL_PATH = 'func'
@@ -181,6 +186,35 @@ def _load_camcan_scores(filename_csv, subjects_selected):
                                   .loc[subjects_selected])
 
     return Bunch(**patients_info.to_dict('list'))
+
+
+def _load_camcan_behavioural_features(path_json):
+    """Load the features from the Cam-CAN behavioural data set.
+
+    Parameters
+    ----------
+    path_json : str,
+        Path to the json file containing the features information.
+
+    Returns
+    -------
+    data : dict
+
+    """
+
+    if not isfile(path_json):
+        raise ValueError('The file {} does not exist.'.format(path_json))
+
+    if not path_json.endswith('.json'):
+        raise ValueError('The file {} is not a JSON file.'.format(path_json))
+
+    with open(path_json, 'r') as fp:
+        d = json.load(fp)
+
+    for key in d:
+        d[key] = tuple(d[key])
+
+    return d
 
 
 def load_camcan_rest(data_dir=CAMCAN_DRAGO_STORE,
@@ -534,3 +568,32 @@ def load_camcan_behavioural(filename_csv,
     dataset['scores'] = scores
 
     return Bunch(**dataset)
+
+
+def load_camcan_behavioural_feature(name_experiment):
+    """Load the Cam-CAN cognitive behavioral data set.
+
+    This loader returns a list containing the features of a requested dataset.
+
+    Parameters
+    ----------
+    name_experiment : str,
+        name of the experiment folder containing the behavioural information.
+
+    Returns
+    -------
+    features : tuple of str
+
+    """
+    d = _load_camcan_behavioural_features\
+        (CAMCAN_DRAGO_STORE_BEHAVIOURAL_EXPERIMENT)
+
+    if name_experiment not in d:
+        raise KeyError('{} does not exist.'.format(name_experiment))
+
+    features = d[name_experiment]
+
+    if isinstance(features, list):
+        features = tuple(features)
+
+    return features
