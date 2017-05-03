@@ -18,6 +18,8 @@ import joblib
 from sklearn.externals import six
 from sklearn.datasets.base import Bunch
 
+from nilearn import input_data
+
 # root path
 CAMCAN_DRAGO_STORE = '/storage/data/camcan/camcan_preproc'
 # time series rest path
@@ -436,6 +438,12 @@ def load_camcan_connectivity_rest(data_dir=CAMCAN_DRAGO_STORE_TIMESERIES_REST,
     return Bunch(**dataset)
 
 
+def _abs_listdir(dir_name):
+    dir_name = os.path.abspath(dir_name)
+    for file_name in os.listdir(dir_name):
+        yield os.path.join(dir_name, file_name)
+
+
 def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
                               data_dir=CAMCAN_DRAGO_STORE_CONTRASTS,
                               patients_excluded=None, mask_file=None):
@@ -482,8 +490,7 @@ def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
     patients_excluded_ = _validate_patients_excluded(patients_excluded)
     dataset = {'subject_id': [], 'contrast_map': [], 'contrast_name': []}
     subject_dirs = _exclude_patients(data_dir, patients_excluded_)
-    for contrast_map in itertools.chain(*map(os.listdir, subject_dirs)):
-        contrast_map = os.path.abspath(contrast_map)
+    for contrast_map in itertools.chain(*map(_abs_listdir, subject_dirs)):
         match = re.match(
             r'^.*sub-([0-9a-zA-Z]+)_([0-9a-zA-Z-]+)_(.+)\.nii\.gz$',
             contrast_map)
@@ -494,6 +501,41 @@ def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
             dataset['contrast_name'].append(contrast)
 
     return Bunch(mask=mask_file, **dataset)
+
+
+def iterate_masked_contrast_maps(contrast_name, statistic_type='z_score',
+                                 data_dir=CAMCAN_DRAGO_STORE_CONTRASTS,
+                                 patients_excluded=None, mask_file=None):
+
+    contrast_maps = load_camcan_contrast_maps(
+        contrast_name, statistic_type, data_dir,
+        patients_excluded, mask_file)
+    masker = input_data.NiftiMasker(mask_img=contrast_maps.mask)
+    contrast_maps = pd.DataFrame(contrast_maps)
+    by_contrast = contrast_maps.groupby('contrast_name')
+    masker.fit()
+    for contrast_name, contrast_maps in by_contrast:
+        masked_file = 'masked_contrasts_{}_{}.csv'.format(
+            contrast_name, statistic_type)
+        masked_file = os.path.join(data_dir, masked_file)
+        if os.path.isfile(masked_file):
+            contrast_data = pd.read_csv(masked_file)
+        else:
+            masked_maps = pd.DataFrame(
+                masker.transform(contrast_maps.contrast_map),
+                index=contrast_maps.index)
+            contrast_data = pd.concat((contrast_maps, masked_maps), axis=1)
+            contrast_data.to_csv(masked_file, index=False)
+        yield contrast_data, masker
+
+
+def load_masked_contrast_maps(contrast_name, statistic_type='z_score',
+                              data_dir=CAMCAN_DRAGO_STORE_CONTRASTS,
+                              patients_excluded=None, mask_file=None):
+    contrasts, maskers = zip(*iterate_masked_contrast_maps(
+        contrast_name, statistic_type, data_dir,
+        patients_excluded, mask_file))
+    return pd.concat(contrasts), maskers[0]
 
 
 def load_camcan_behavioural(filename_csv,
