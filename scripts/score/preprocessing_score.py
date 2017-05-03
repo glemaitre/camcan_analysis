@@ -53,8 +53,8 @@ def get_df(path):
                 df_part.columns = header
                 df = df.merge(df_part, how="left", left_index=True,
                               left_on="CCID", right_on=df_part.columns[0])
-        header = [c for c in df.columns if c != df.columns[1]
-                  and "ErrorMessages" not in c]
+        header = [c for c in df.columns if c != df.columns[1] and
+                  "ErrorMessages" not in c]
         df = df[header]
     else:
         return None
@@ -108,7 +108,7 @@ def merge_data(path_data, filename_participants):
     :return: dataframe, dictionary
     """
     d = {}
-    d_features= {}
+    d_features = {}
     for i in os.listdir(path_data):
         path0 = os.path.join(path_data, i)
         if os.path.isdir(path0):
@@ -156,4 +156,3 @@ big_df.to_csv(path_data, sep=";", encoding="utf-8", index=False)
 print("output features :", path_features)
 with open(path_features, mode="w") as f:
     json.dump(d, f)
-
