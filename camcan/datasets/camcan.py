@@ -506,7 +506,41 @@ def load_camcan_contrast_maps(contrast_name, statistic_type='z_score',
 def iterate_masked_contrast_maps(contrast_name, statistic_type='z_score',
                                  data_dir=CAMCAN_DRAGO_STORE_CONTRASTS,
                                  patients_excluded=None, mask_file=None):
+    """
+    Load masked contrast maps for Camcan.
 
+    Parameters
+    ----------
+    contrast_name : str,
+       Regex pattern that matches the contrasts you want
+
+    statistic_type : str, (default='z_score')
+        The kind of statistical map to load.
+
+    data_dir : str, (default=CAMCAN_DRAGO_STORE_CONTRASTS)
+        Root directory containing the root data.
+
+    patients_excluded : str, tuple of str or None, optional (default=None)
+        - If a string, corresponds to the path of a csv file. The first line
+        of this csv file should contain the name of each column.
+        - If a tuple of strings, contains the ID of the patient to be
+        excluded. The string provided should follow the BIDS standard (e.g.,
+        'sub-******').
+    mask_file : str or None (default=None)
+        where to find the mask. if none we look for it in data_dir
+
+    Yields
+    -------
+    contrast_data : pandas.DataFrame,
+        first columns are:
+        - 'contrast_map', the path to the map;
+        - 'contrast_name', the name of the contrast;
+        - 'mask', the path to the mask.
+        - 'subject_id', the ID of the patient;
+        subsequent columns contain the voxels
+    yields one dataframe per contrast
+
+    """
     contrast_maps = load_camcan_contrast_maps(
         contrast_name, statistic_type, data_dir,
         patients_excluded, mask_file)
@@ -535,6 +569,41 @@ def load_masked_contrast_maps(contrast_name, statistic_type='z_score',
     contrasts, maskers = zip(*iterate_masked_contrast_maps(
         contrast_name, statistic_type, data_dir,
         patients_excluded, mask_file))
+    """
+    Load masked contrast maps for Camcan.
+
+    Parameters
+    ----------
+    contrast_name : str,
+       Regex pattern that matches the contrasts you want
+
+    statistic_type : str, (default='z_score')
+        The kind of statistical map to load.
+
+    data_dir : str, (default=CAMCAN_DRAGO_STORE_CONTRASTS)
+        Root directory containing the root data.
+
+    patients_excluded : str, tuple of str or None, optional (default=None)
+        - If a string, corresponds to the path of a csv file. The first line
+        of this csv file should contain the name of each column.
+        - If a tuple of strings, contains the ID of the patient to be
+        excluded. The string provided should follow the BIDS standard (e.g.,
+        'sub-******').
+    mask_file : str or None (default=None)
+        where to find the mask. if none we look for it in data_dir
+
+    Returns
+    -------
+    contrast_data : pandas.DataFrame,
+        first columns are:
+        - 'contrast_map', the path to the map;
+        - 'contrast_name', the name of the contrast;
+        - 'mask', the path to the mask.
+        - 'subject_id', the ID of the patient;
+        subsequent columns contain the voxels
+
+    """
+
     return pd.concat(contrasts), maskers[0]
 
 
