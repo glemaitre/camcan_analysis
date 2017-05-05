@@ -2,9 +2,7 @@
 The aim of the script is age prediction of CamCan features extracted with
 diferent connectivity matrices and different atlases
 
-
 """
-
 
 import os
 import pandas as pd
@@ -16,7 +14,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, \
     explained_variance_score, r2_score
 from sklearn import linear_model, svm, tree, ensemble, neighbors
 from sklearn.svm import SVR
-from sklearn.multioutput import MultiOutputRegressor
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 
@@ -92,6 +89,7 @@ def camcan_prediction_uni_out(x, y, regr_uni_list, results_path,
                                                   name_csv_prediction))
     return df_prediction_uni, y_test_array, y_predict_array
 
+
 def plot_regression(y_target, y_predict, fig_name, fig_path):
 
     plt.scatter(y_target, y_predict)
@@ -129,7 +127,7 @@ kind_connectivity = ['tangent', 'correlation', 'partial correlation']
 # phenotype
 csv_name = 'participant_data.csv'
 csv_file = os.path.join(csv_path, csv_name)
-csv_behav = os.path.join(csv_path,'_Summary/csv',
+csv_behav = os.path.join(csv_path, '_Summary/csv',
                          'AllExpts_AllButOneRaw_DataTable.csv')
 dataname = 'CamCan'
 
@@ -168,7 +166,7 @@ regr_uni_list = [linear_model.BayesianRidge(),
 # Prediction age
 
 # select number of subject
-#n_subj_list = [100, 200, 400, 626]
+# n_subj_list = [100, 200, 400, 626]
 n_subj_list = [626]
 
 y_keys = ['age']
@@ -189,7 +187,7 @@ for atlas in atlases:
                                    atlas + '_atlas_' + kind_con + '.csv')
 
             df_prediction, y_test_array, y_predict_array = \
-                camcan_prediction_uni_out(x[0:n_subjects,:], y[0:n_subjects],
+                camcan_prediction_uni_out(x[0:n_subjects, :], y[0:n_subjects],
                                           regr_uni_list, results_path,
                                           name_csv_prediction)
 
